@@ -69,7 +69,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if (key == "g" || m.lastKey == "g") && (m.focus == focusMain || m.focus == focusSidebar) {
+	if key == "g" || m.lastKey == "g" {
 		switch key {
 		case "g":
 			if m.lastKey == "g" {
@@ -612,24 +612,28 @@ func navigateDown(m model, steps int) (model, tea.Cmd) {
 }
 
 func displayAlbumFromSelected(m model) (tea.Model, tea.Cmd) {
-	// Only execute when focused on a song
-	if m.focus != focusMain || (m.focus == focusMain && m.displayMode != displaySongs) {
+	var id string
+
+	switch m.focus {
+	case focusMain:
+		if m.viewMode == viewList && m.displayMode == displaySongs && len(m.songs) > 0 {
+			id = m.songs[m.cursorMain].AlbumID // album id of selected song
+		} else if m.viewMode == viewQueue && len(m.queue) > 0 {
+			id = m.queue[m.cursorMain].AlbumID // album id of a queued song
+		}
+
+	case focusSong:
+		if len(m.queue) > 0 {
+			id = m.queue[m.queueIndex].AlbumID // album id of playing song
+		}
+	}
+
+	// Return on no ID
+	if id == "" {
 		return m, nil
 	}
 
-	albumID := ""
-	if m.viewMode == viewList && len(m.songs) != 0 {
-		// album of a songs
-		albumID = m.songs[m.cursorMain].AlbumID
-	} else if m.viewMode == viewQueue && len(m.queue) != 0 {
-		// album of a queued song
-		albumID = m.queue[m.cursorMain].AlbumID
-	}
-
-	if albumID == "" {
-		return m, nil
-	}
-
+	// Reset model
 	m.loading = true
 	m.mainOffset = 0
 	m.cursorMain = 0
@@ -639,33 +643,41 @@ func displayAlbumFromSelected(m model) (tea.Model, tea.Cmd) {
 	m.displayModePrev = m.displayMode
 	m.displayMode = displaySongs
 
-	return m, getAlbumSongs(albumID, false)
+	return m, getAlbumSongs(id, false)
 }
 
 func displayArtistFromSelected(m model) (tea.Model, tea.Cmd) {
-	// Only execute when focused on a song or album
-	if m.focus != focusMain || (m.focus == focusMain && m.displayMode == displayArtist) {
-		return m, nil
-	}
+	var id string
 
-	artistID := ""
-	if m.viewMode == viewList {
-		if m.displayMode == displaySongs && len(m.songs) != 0 {
-			// artist of a songs
-			artistID = m.songs[m.cursorMain].ArtistID
-		} else if m.displayMode == displayAlbums && len(m.albums) != 0 {
-			// artist of an album
-			artistID = m.albums[m.cursorMain].ArtistID
+	switch m.focus {
+	case focusMain:
+		switch m.displayMode {
+		case displaySongs:
+			if m.viewMode == viewList && len(m.songs) > 0 {
+				id = m.songs[m.cursorMain].ArtistID // artist id of selected songs
+			} else if m.viewMode == viewQueue && len(m.queue) > 0 {
+				id = m.songs[m.queueIndex].ArtistID // artist id of queued song
+			}
+
+		case displayAlbums:
+			if len(m.albums) > 0 {
+				id = m.albums[m.cursorMain].ArtistID
+			}
 		}
-	} else if m.viewMode == viewQueue && len(m.queue) != 0 {
-		// artist of a queued song
-		artistID = m.queue[m.cursorMain].ArtistID
+
+	case focusSong:
+		if len(m.queue) > 0 {
+			id = m.queue[m.queueIndex].ArtistID
+		}
+
 	}
 
-	if artistID == "" {
+	// Return on no ID
+	if id == "" {
 		return m, nil
 	}
 
+	// Reset model
 	m.loading = true
 	m.mainOffset = 0
 	m.cursorMain = 0
@@ -675,7 +687,7 @@ func displayArtistFromSelected(m model) (tea.Model, tea.Cmd) {
 	m.displayModePrev = m.displayMode
 	m.displayMode = displayAlbums
 
-	return m, getArtistAlbums(artistID)
+	return m, getArtistAlbums(id)
 }
 
 func cycleFilter(m model, forward bool) model {
@@ -997,42 +1009,50 @@ func mediaToggleLoop(m model) model {
 }
 
 func mediaToggleFavorite(m model, msg tea.Msg) (model, tea.Cmd) {
-	if m.focus == focusSearch {
+	var id string
+
+	switch m.focus {
+	case focusSearch: // Focus search bar
 		return typeInput(m, msg)
+
+	case focusMain: // Focus main view
+		switch m.displayMode {
+		case displaySongs: // Songs
+			var targetList []api.Song
+			switch m.viewMode {
+			case viewList:
+				targetList = m.songs
+			case viewQueue:
+				targetList = m.queue
+			}
+
+			if len(targetList) > 0 {
+				id = targetList[m.cursorMain].ID
+			}
+
+		case displayAlbums: // Albums
+			if len(m.albums) > 0 {
+				id = m.albums[m.cursorMain].ID
+			}
+		case displayArtist: // Artists
+			if len(m.artists) > 0 {
+				id = m.artists[m.cursorMain].ID
+			}
+		}
+
+	case focusSong: // Focus footer
+		if len(m.queue) > 0 {
+			id = m.queue[m.queueIndex].ID
+		}
 	}
 
-	id := ""
-
-	switch m.displayMode {
-	case displaySongs:
-
-		var targetList []api.Song
-		switch m.viewMode {
-		case viewList:
-			targetList = m.songs
-		case viewQueue:
-			targetList = m.queue
-		}
-
-		if len(targetList) > 0 {
-			id = targetList[m.cursorMain].ID
-		}
-	case displayAlbums:
-		if len(m.albums) > 0 {
-			id = m.albums[m.cursorMain].ID
-		}
-	case displayArtist:
-		if len(m.artists) > 0 {
-			id = m.artists[m.cursorMain].ID
-		}
-	}
-
+	// Return on no ID
 	if id == "" {
 		return m, nil
 	}
 
+	// Toggle favorite
 	isStarred := m.starredMap[id]
-
 	if isStarred {
 		delete(m.starredMap, id)
 	} else {
