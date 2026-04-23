@@ -258,6 +258,14 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	cmds = append(cmds, syncPlayerCmd())
 
+	if m.dbusInstance != nil {
+		if m.playerStatus.Paused {
+			m.dbusInstance.UpdateStatus("Paused")
+		} else {
+			m.dbusInstance.UpdateStatus("Playing")
+		}
+	}
+
 	// Queue ended
 	if m.playerStatus.Path == "" || m.playerStatus.Path == "<nil>" || len(m.queue) == 0 {
 		m.queue = []api.Song{}
