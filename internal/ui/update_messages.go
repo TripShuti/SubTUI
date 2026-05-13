@@ -259,6 +259,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, syncPlayerCmd())
 
 	if m.dbusInstance != nil {
+		m.dbusInstance.UpdatePosition(int64(m.playerStatus.Current * 1_000_000))
 		if m.playerStatus.Paused {
 			m.dbusInstance.UpdateStatus("Paused")
 		} else {
@@ -549,6 +550,17 @@ func (m model) handleIntegrationNextSong(msg integration.NextSongMsg) (tea.Model
 
 func (m model) handleIntegrationPreviousSong(msg integration.PreviousSongMsg) (tea.Model, tea.Cmd) {
 	return mediaSongPrev(m, msg)
+}
+
+func (m model) handleIntegrationSetPosition(msg integration.SetPositionMsg) (tea.Model, tea.Cmd) {
+	seconds := float64(msg.Position) / 1000000.0
+	player.SeekTo(seconds)
+
+	if m.dbusInstance != nil {
+		m.dbusInstance.UpdatePosition(msg.Position)
+	}
+
+	return m, nil
 }
 
 func (m model) handleSetDiscord(msg SetDiscordMsg) (tea.Model, tea.Cmd) {
