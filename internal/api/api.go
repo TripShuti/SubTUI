@@ -393,7 +393,7 @@ func SubsonicAddToPlaylist(playlistID string, songIds []string) {
 	}
 
 	for _, id := range songIds {
-		params.Add("id", id)
+		params.Add("songIdToAdd", id)
 	}
 
 	_, _ = subsonicGET("/updatePlaylist", params)
