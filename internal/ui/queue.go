@@ -21,6 +21,7 @@ func (m *model) playQueueIndex(index int, startPaused bool) tea.Cmd {
 	}
 
 	m.queueIndex = index
+	m.djSeed = m.queue[index].ID
 	song := m.queue[m.queueIndex]
 
 	playCmd := func() tea.Msg {
