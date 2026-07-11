@@ -41,6 +41,47 @@ func (m model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	if msg.Action == tea.MouseActionPress {
+		switch msg.Button {
+		case tea.MouseButtonWheelUp:
+			if m.showMediaPlayer {
+				return lyricsUp(m), nil
+			}
+			if m.showPlaylists || m.showRating {
+				if m.cursorPopup > 0 {
+					m.cursorPopup--
+				}
+				return m, nil
+			}
+			if m.focus == focusMain || m.focus == focusSidebar {
+				return navigateUp(m, 3), nil
+			}
+			return m, nil
+
+		case tea.MouseButtonWheelDown:
+			if m.showMediaPlayer {
+				return lyricsDown(m), nil
+			}
+			if m.showPlaylists {
+				if m.cursorPopup < len(m.playlists)-1 {
+					m.cursorPopup++
+				}
+				return m, nil
+			}
+			if m.showRating {
+				if m.cursorPopup < 5 {
+					m.cursorPopup++
+				}
+				return m, nil
+			}
+			if m.focus == focusMain || m.focus == focusSidebar {
+				return navigateDown(m, 3)
+			}
+			return m, nil
+		}
+		return m, nil
+	}
+
 	if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
 		return m, nil
 	}

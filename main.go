@@ -80,7 +80,7 @@ func main() {
 	defer player.ShutdownPlayer()
 
 	// Init TUI
-	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen(), tea.WithMouseAllMotion())
 
 	// Start background services
 	instance := integration.Init(p)
