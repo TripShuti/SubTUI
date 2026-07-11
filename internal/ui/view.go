@@ -672,6 +672,7 @@ func footerInformation(m model, width int) string {
 
 	// Middle row
 	var songAlbumArtistInfo string
+	var djStatus string
 	var loopStatus string
 	var volumeStatus string
 
@@ -681,6 +682,11 @@ func footerInformation(m model, width int) string {
 		songAlbumArtistInfo = ""
 	} else {
 		songAlbumArtistInfo = api.SanitizeDisplayString(m.playerStatus.Artist + " - " + m.playerStatus.Album)
+	}
+
+	if m.djEnabled {
+		moodLabel := DjMoodLabels[m.djMood]
+		djStatus = fmt.Sprintf("[DJ: %s]", moodLabel)
 	}
 
 	switch m.loopMode {
@@ -696,16 +702,28 @@ func footerInformation(m model, width int) string {
 		volumeStatus = fmt.Sprintf("[%v%%]", m.playerStatus.Volume)
 	}
 
-	middleRowGap := width - runewidth.StringWidth(songAlbumArtistInfo) - runewidth.StringWidth(loopStatus) - 1 - runewidth.StringWidth(volumeStatus)
+	rightSideWidth := runewidth.StringWidth(djStatus)
+	if djStatus != "" {
+		rightSideWidth++
+	}
+	rightSideWidth += runewidth.StringWidth(loopStatus)
+	if loopStatus != "" {
+		rightSideWidth++
+	}
+	rightSideWidth += runewidth.StringWidth(volumeStatus)
+
+	middleRowGap := width - runewidth.StringWidth(songAlbumArtistInfo) - rightSideWidth
 	if middleRowGap < 0 {
 		middleRowGap = 0
 	}
 
-	truncatedSongAlbumArtistInfo := truncate(songAlbumArtistInfo, width-runewidth.StringWidth(loopStatus)-1-runewidth.StringWidth(volumeStatus))
+	truncatedSongAlbumArtistInfo := truncate(songAlbumArtistInfo, width-rightSideWidth)
 	middleRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		truncatedSongAlbumArtistInfo,
 		strings.Repeat(" ", middleRowGap),
+		djStatus,
+		" ",
 		loopStatus,
 		" ",
 		volumeStatus,
@@ -925,15 +943,22 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 
 	// Status Section
 	var notificationStatus string
+	var djStatus string
 	var loopStatus string
 	var volumeStatus string
 
 	var notificationGap int
+	var djGap int
 	var loopGap int
 	var volumeGap int
 
 	if !m.notify {
 		notificationStatus = "[Silent]"
+	}
+
+	if m.djEnabled {
+		moodLabel := DjMoodLabels[m.djMood]
+		djStatus = fmt.Sprintf("[DJ:%s]", moodLabel)
 	}
 
 	switch m.loopMode {
@@ -950,14 +975,18 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 	}
 
 	statusAvailableWidth := width - 4 // 2x 2 padding
-	statusWidth := statusAvailableWidth / 3
+	statusWidth := statusAvailableWidth / 4
 
 	notificationGap = (statusWidth - len(notificationStatus)) / 2
+	djGap = (statusWidth - len(djStatus)) / 2
 	loopGap = (statusWidth - len(loopStatus)) / 2
 	volumeGap = (statusWidth - len(volumeStatus)) / 2
 
 	if notificationGap < 0 {
 		notificationGap = 0
+	}
+	if djGap < 0 {
+		djGap = 0
 	}
 	if loopGap < 0 {
 		loopGap = 0
@@ -968,6 +997,7 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 
 	statusSection = lipgloss.JoinHorizontal(lipgloss.Center,
 		strings.Repeat(" ", notificationGap)+notificationStatus+strings.Repeat(" ", notificationGap),
+		strings.Repeat(" ", djGap)+djStatus+strings.Repeat(" ", djGap),
 		strings.Repeat(" ", loopGap)+loopStatus+strings.Repeat(" ", loopGap),
 		strings.Repeat(" ", volumeGap)+volumeStatus+strings.Repeat(" ", volumeGap),
 	)
@@ -1232,6 +1262,8 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Media.VolumeUp), "Volume up"),
 		line(keys(api.AppConfig.Keybinds.Media.VolumeDown), "Volume down"),
 		line(keys(api.AppConfig.Keybinds.Media.ToggleMediaPlayer), "Media Player"),
+		line(keys(api.AppConfig.Keybinds.Media.DjToggle), "DJ mode"),
+		line(keys(api.AppConfig.Keybinds.Media.DjCycleMood), "Cycle DJ mood"),
 	)
 
 	queueKeybinds := section("QUEUE",

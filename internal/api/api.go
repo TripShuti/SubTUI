@@ -415,6 +415,37 @@ func SubsonicCreateShare(ids []string) (string, error) {
 
 }
 
+func SubsonicGetSimilarSongs(id string, count int) ([]Song, error) {
+	params := url.Values{
+		"id":    {id},
+		"count": {strconv.Itoa(count)},
+	}
+
+	data, err := subsonicGET("/getSimilarSongs2", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Response.SimilarSongs2.Song, nil
+}
+
+func SubsonicGetRandomSongs(count int, genre string) ([]Song, error) {
+	params := url.Values{
+		"size": {strconv.Itoa(count)},
+	}
+
+	if genre != "" {
+		params.Set("genre", genre)
+	}
+
+	data, err := subsonicGET("/getRandomSongs", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Response.RandomSongs.Song, nil
+}
+
 func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
 	params := url.Values{
 		"id": {ID},

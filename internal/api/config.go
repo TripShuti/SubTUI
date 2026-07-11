@@ -177,6 +177,8 @@ type MediaKeybinds struct {
 	VolumeUp          []string `toml:"volume_up"`
 	VolumeDown        []string `toml:"volume_down"`
 	ToggleMediaPlayer []string `toml:"toggle_media_player"`
+	DjToggle          []string `toml:"dj_toggle"`
+	DjCycleMood       []string `toml:"dj_cycle_mood"`
 }
 
 type QueueKeybinds struct {

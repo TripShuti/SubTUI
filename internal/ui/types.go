@@ -33,6 +33,20 @@ const (
 )
 
 const (
+	DjMoodAny    = 0
+	DjMoodChill  = 1
+	DjMoodEnergy = 2
+	DjMoodFocus  = 3
+)
+
+var DjMoodLabels = map[int]string{
+	DjMoodAny:    "Any",
+	DjMoodChill:  "Chill",
+	DjMoodEnergy: "Energy",
+	DjMoodFocus:  "Focus",
+}
+
+const (
 	loginPassword = iota
 	loginPasswordHashed
 	loginApi

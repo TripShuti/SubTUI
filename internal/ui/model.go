@@ -100,6 +100,12 @@ type model struct {
 	selectionAnchor int
 	selectionMap    map[int]bool
 
+	// DJ state
+	djEnabled  bool
+	djMood     int
+	djSeed     string
+	djHistory  map[string]bool
+
 	// Mouse state
 	lastClickTime time.Time
 	lastClickId   string

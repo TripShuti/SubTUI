@@ -218,6 +218,15 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return mediaToggleMediaPlayer(m), nil
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Media.DjToggle) {
+		m = m.djToggle()
+		return m, m.djRefillIfNeeded()
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.DjCycleMood) {
+		return m.djCycleMood(), nil
+	}
+
 	// QUEUE KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Queue.ToggleQueueView) {
 		return toggleQueue(m), nil

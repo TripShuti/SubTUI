@@ -82,6 +82,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SetDiscordMsg:
 		return m.handleSetDiscord(msg)
 
+	case djRefillResultMsg:
+		return m.handleDjRefill(msg)
+
 	}
 
 	return m, cmd

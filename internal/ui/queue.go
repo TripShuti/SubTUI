@@ -48,6 +48,7 @@ func (m *model) playQueueIndex(index int, startPaused bool) tea.Cmd {
 	return tea.Batch(
 		playCmd,
 		m.savePlayQueue(),
+		m.djRefillIfNeeded(),
 	)
 }
 
