@@ -39,8 +39,11 @@ func (m model) djCycleMood() model {
 	return m
 }
 
-func (m model) djRefillIfNeeded() tea.Cmd {
-	if !m.djEnabled {
+// Мутує модель через показник і не повертає її: переприсвоювання m
+// результатом у викликача дозволяло компілятору тримати дві копії
+// структури, і записи в другу не доходили до стану, що повертається.
+func (m *model) djRefillIfNeeded() tea.Cmd {
+	if !m.djEnabled || m.djRefillPending {
 		return nil
 	}
 	remaining := len(m.queue) - m.queueIndex - 1
@@ -50,13 +53,15 @@ func (m model) djRefillIfNeeded() tea.Cmd {
 	return m.djRefillCmd()
 }
 
-func (m model) djRefillCmd() tea.Cmd {
+func (m *model) djRefillCmd() tea.Cmd {
 	seedID := m.djSeed
 	if seedID == "" && len(m.queue) > 0 && m.queueIndex < len(m.queue) {
 		seedID = m.queue[m.queueIndex].ID
 	}
 
-	return func() tea.Msg {
+	m.djRefillPending = true
+
+	cmd := func() tea.Msg {
 		if seedID == "" {
 			songs, err := api.SubsonicGetRandomSongs(20, "")
 			if err != nil {
@@ -88,12 +93,18 @@ func (m model) djRefillCmd() tea.Cmd {
 
 		return djRefillResultMsg{songs: similar}
 	}
+
+	return cmd
 }
 
 func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
+	m.djRefillPending = false
+
 	if len(msg.songs) == 0 {
 		return m, nil
 	}
+
+	queueWasEmpty := len(m.queue) == 0
 
 	type weighted struct {
 		song   api.Song
@@ -148,11 +159,6 @@ func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	totalWeight := 0.0
-	for _, c := range candidates {
-		totalWeight += c.weight
-	}
-
 	count := 15
 	if count > len(candidates) {
 		count = len(candidates)
@@ -161,6 +167,18 @@ func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
 	selectedIDs := make(map[string]bool)
 
 	for len(selected) < count {
+		// Перераховуємо totalWeight лише з невибраних кандидатів,
+		// щоб кожна ітерація могла досягти pick і цикл не рвався рано.
+		totalWeight := 0.0
+		for _, c := range candidates {
+			if !selectedIDs[c.song.ID] {
+				totalWeight += c.weight
+			}
+		}
+		if totalWeight == 0 {
+			break
+		}
+
 		pick := rand.Float64() * totalWeight
 		cumulative := 0.0
 		found := -1
@@ -181,9 +199,6 @@ func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
 		selected = append(selected, s)
 		selectedIDs[s.ID] = true
 		m.djHistory[s.ID] = true
-		if len(selectedIDs) >= len(candidates) {
-			break
-		}
 	}
 
 	m.queue = append(m.queue, selected...)
@@ -196,6 +211,12 @@ func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
 	m.pushCurrentMetadata()
 
 	m.syncNextSong()
+
+	// Черга була порожня (кінець черги / DJ увімкнено вручну):
+	// стартуємо перший трек автоматично, щоб DJ не мовчав.
+	if queueWasEmpty && len(m.queue) > 0 {
+		return m, m.playQueueIndex(0, false)
+	}
 
 	return m, nil
 }

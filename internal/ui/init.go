@@ -36,7 +36,7 @@ func InitialModel() model {
 		displayMode:        displaySongs,
 		starredMap:         make(map[string]bool),
 		djHistory:          make(map[string]bool),
-		lastPlayedSongPath: "",
+		lastSongPath:        new(string),
 		loginInputs:        initialLoginInputs(),
 		lastKey:            "",
 		showMediaPlayer:    false,

@@ -310,8 +310,16 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 	// Queue ended
 	if m.playerStatus.Path == "" || m.playerStatus.Path == "<nil>" || len(m.queue) == 0 {
+		// DJ увімкнено: не мовчимо, а дозаповнюємо чергу і продовжуємо грати.
+		if m.djEnabled {
+			m.queue = []api.Song{}
+			*m.lastSongPath = ""
+			refillCmd := m.djRefillIfNeeded()
+			return m, tea.Batch(refillCmd, syncPlayerCmd())
+		}
+
 		m.queue = []api.Song{}
-		m.lastPlayedSongPath = ""
+		*m.lastSongPath = ""
 
 		// Clear MRPIS
 		if m.dbusInstance != nil {
@@ -334,7 +342,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Song changed
-	if m.playerStatus.Path != m.lastPlayedSongPath {
+	if m.playerStatus.Path != *m.lastSongPath {
 
 		// Update queue index after mpv song change
 		if !strings.Contains(m.playerStatus.Path, "id="+m.queue[m.queueIndex].ID) {
@@ -350,8 +358,16 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		// Update queue
 		m.syncNextSong()
 
+		// DJ: дозаповнюємо чергу при природному переході треків.
+		// Не переприсвоюємо m результатом (компілятор може тримати дві копії
+		// структури, і записи у другу не доходять до стану, що повертається).
+		refillCmd := m.djRefillIfNeeded()
+		cmds = append(cmds, refillCmd)
+
 		currentSong := m.queue[m.queueIndex]
-		m.lastPlayedSongPath = m.playerStatus.Path // Update previous song
+		// lastSongPath — вказівник на heap: копіювання m копіює лише вказівник,
+		// тож запис завжди бачить той самий стан, що й наступний тик.
+		*m.lastSongPath = m.playerStatus.Path
 		m.scrobbled = false                        // Reset scrobble status
 
 		// Update current scroble (just the playing now, not a submission)

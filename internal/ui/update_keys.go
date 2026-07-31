@@ -228,7 +228,8 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Media.DjToggle) {
 		m = m.djToggle()
-		return m, m.djRefillIfNeeded()
+		djCmd := m.djRefillIfNeeded()
+		return m, djCmd
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Media.DjCycleMood) {

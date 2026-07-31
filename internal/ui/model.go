@@ -52,7 +52,7 @@ type model struct {
 	// App State
 	err                error
 	loading            bool
-	lastPlayedSongPath string
+	lastSongPath *string
 	scrobbled          bool
 	loginErr           string
 	discordRPC         bool
@@ -103,10 +103,11 @@ type model struct {
 	selectionMap    map[int]bool
 
 	// DJ state
-	djEnabled  bool
-	djMood     int
-	djSeed     string
-	djHistory  map[string]bool
+	djEnabled        bool
+	djMood           int
+	djSeed           string
+	djHistory        map[string]bool
+	djRefillPending  bool
 
 	// Mouse state
 	lastClickTime time.Time
